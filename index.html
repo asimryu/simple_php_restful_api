@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>SIMPLE RESTful API</title>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+	<link rel="stylesheet" href="http://code.jquery.com/ui/1.12.1/themes/start/jquery-ui.css">
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.2/css/all.css" integrity="sha384-/rXc/GQVaYpyDdyxK+ecHPVYJSN9bmVFBvjA/9eOB+pb3F2w2N6fc5qB9Ew5yIns" crossorigin="anonymous">
+	<script src="http://code.jquery.com/jquery-3.3.1.min.js"></script>
+	<script>jQuery.noConflict();</script>
+	<script src="http://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.5/angular.min.js"></script>
+	<style>
+		.display-none { display: none; }
+	</style>
+</head>
+<body>
+
+	<div class="container">
+
+		<div class="jumbotron text-center">
+			<h1>Simple RESTful API Example</h1>
+			<p><a href="#!" class="btn-add btn btn-primary"><i class="fas fa-user-friends"></i> Add Friend</a></p>
+		</div>
+
+		<div ng-app="myApp" ng-controller="myFriends">
+			<div>
+				<form>
+					<div class="form-group">
+						<input type="text" class="form-control" id="search" placeholder="Search..." ng-model="search">
+					</div>
+				</form>
+			</div>			
+			<table id="friendstable" class="table table-bordered table-hover">
+				<tr class="active">
+					<td>id</td>
+					<td>name</td>
+					<td>city</td>
+					<td>Phone</td>
+					<td>Email</td>
+					<td>&nbsp;</td>
+				</tr>
+				<tr ng-repeat="friend in friends | filter:search">
+					<td>{{ friend.id }}</td>
+					<td>{{ friend.name }}</td>
+					<td>{{ friend.city }}</td>
+					<td>{{ friend.phone }}</td>
+					<td>{{ friend.email }}</td>
+					<td>
+						<a class="btn-del btn btn-danger btn-sm" href="{{friend.id}}"><i class="fas fa-trash-alt"></i></a>
+						<a class="btn-modify btn btn-warning btn-sm" href="{{friend.id}}"><i class="fas fa-pen"></i></a>
+					</td>
+				</tr>
+			</table>
+		</div>
+
+	</div>
+
+
+	<!-- write form dialog // -->
+	<div id="write-form-dialog" class="display-none">
+		<form id="write-form">
+			<div class="form-group row">
+				<label for="friendName" class="col-sm-2 col-form-label">Name</label>
+				<div class="col-sm-10">
+					<input type="text" class="form-control" id="friendName" placeholder="friend's name">
+				</div>
+			</div>
+			<div class="form-group row">
+				<label for="friendCity" class="col-sm-2 col-form-label">City</label>
+				<div class="col-sm-10">
+					<input type="text" class="form-control" id="friendCity" placeholder="friend's city">
+				</div>
+			</div>
+			<div class="form-group row">
+				<label for="friendPhone" class="col-sm-2 col-form-label">Phone</label>
+				<div class="col-sm-10">
+					<input type="text" class="form-control" id="friendPhone" placeholder="friend's phone number">
+				</div>
+			</div>	
+			<div class="form-group row">
+				<label for="friendEmail" class="col-sm-2 col-form-label">Email</label>
+				<div class="col-sm-10">
+					<input type="text" class="form-control" id="friendEmail" placeholder="friend's phone email">
+				</div>
+			</div>
+		</form>
+	</div>
+	<!-- // write form dialog -->
+
+
+	<script>
+
+		var app = angular.module("myApp",[]);
+		app.controller("myFriends",function($scope,$http){
+			$http.get("./api/friend").then(function(result){
+				$scope.friends = result.data;
+			});
+		});
+
+		jQuery("#friendstable").on("click", ".btn-del", function(e){
+			e.preventDefault();
+			var id = jQuery(this).attr("href");
+			if( ! id ) return;
+			if( ! confirm("Want delete id #" + id) ) return;
+			jQuery.ajax({
+				url: "./api/friend/" + id,
+				method: "DELETE",
+				success: function(data){
+					var count = parseInt(data, 10);//decimal number
+					if( count ) {
+						location.reload();
+					} else {
+						alert("Delete Error!!!");
+					}
+				}
+			});
+		});
+
+		jQuery(".btn-add").on("click",function(){
+			jQuery("#friendName").val("");
+			jQuery("#friendCity").val("");
+			jQuery("#friendPhone").val("");
+			jQuery("#friendEmail").val("");
+			jQuery("#write-form-dialog").dialog({
+				width: 600,
+				height: 380,
+				modal: true,
+				title: "Add new friend",
+				buttons: {
+					"Save": function(){
+						var formdata = {};
+						formdata.mode = "POST";
+						formdata.name = jQuery("#friendName").val();
+						formdata.city = jQuery("#friendCity").val();
+						formdata.phone = jQuery("#friendPhone").val();
+						formdata.email = jQuery("#friendEmail").val();
+						saveFriend(formdata);
+					},
+					"Cancel": function(){
+						jQuery(this).dialog("close");
+					}
+				}
+			});			
+		});
+
+		jQuery("#friendstable").on("click", ".btn-modify", function(e){
+			e.preventDefault();
+			var id = jQuery(this).attr("href");
+			if( ! id ) return;
+			jQuery.getJSON("./api/friend/" + id, function(data){
+				if( ! data[0] ) return;
+				friend = data[0];
+				jQuery("#friendName").val(friend.name);
+				jQuery("#friendCity").val(friend.city);
+				jQuery("#friendPhone").val(friend.phone);
+				jQuery("#friendEmail").val(friend.email);
+				jQuery("#write-form-dialog").dialog({
+					width: 600,
+					height: 380,
+					modal: true,
+					title: "Modify friend",
+					buttons: {
+						"Save": function(){
+							var formdata = {};
+							formdata.mode = "PUT";
+							formdata.id = id;
+							formdata.name = jQuery("#friendName").val();
+							formdata.city = jQuery("#friendCity").val();
+							formdata.phone = jQuery("#friendPhone").val();
+							formdata.email = jQuery("#friendEmail").val();
+							saveFriend(formdata);
+						},
+						"Cancel": function(){
+							jQuery(this).dialog("close");
+						}
+					}
+				});
+			});
+		});
+
+		function saveFriend(data){
+			if( ! data ) return;
+			var request_uri = "./api/friend";
+			if( data.id ) request_uri += "/" + data.id;
+			jQuery.ajax({
+				url: request_uri,
+				method: data.mode,
+				data: data,
+				success: function(result){
+					var count = parseInt(result, 10);//decimal number
+					console.log(result);
+					if( count ) {
+						location.reload();
+					} else {
+						alert("Save Error or Nothing saved!!!");
+					}
+				}
+			});
+		}
+
+
+	</script>
+</body>
+</html>
