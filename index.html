@@ -29,14 +29,25 @@
 			<p class="text-right" style="margin-top: 10px;"><a href="#!" class="get-all-data btn btn-info">View JSON</a></p>
 		</div>
 
-		<div ng-app="myApp" ng-controller="myFriends">
+		<div ng-app="myApp" ng-controller="myFriends" ng-init="getFriends('next')">
 			<div>
 				<form>
 					<div class="form-group">
 						<input type="text" class="form-control" id="search" placeholder="Search..." ng-model="search">
 					</div>
 				</form>
-			</div>			
+			</div>
+
+			<div>
+				<p class="text-right">
+					<span id="error-msg" class="text-danger display-none"></span>&nbsp;&nbsp;
+					page: <span id="page">0</span> / <span id="totalpages">0</span>&nbsp;&nbsp;
+					total rows: <span id="totalrows">0</span>&nbsp;&nbsp;
+					<button class="btn btn-info" ng-click="getFriends('prev')"><i class="fas fa-angle-double-left"></i></button>
+					<button class="btn btn-info" ng-click="getFriends('next')"><i class="fas fa-angle-double-right"></i></button>
+				</p>
+			</div>
+
 			<table id="friendstable" class="table table-bordered table-hover">
 				<tr class="active">
 					<td>id</td>
@@ -96,12 +107,45 @@
 
 
 	<script>
+		var page = 0;
+		var totalrows = 0;
+		var totalpages = 0;
+		jQuery.getJSON("./api/pages",function(result){
+			totalpages = result.totalpages;
+			totalrows = result.totalrows;
+			jQuery("#totalpages").text(totalpages);
+			jQuery("#totalrows").text(totalrows);
+		});
 
 		var app = angular.module("myApp",[]);
 		app.controller("myFriends",function($scope,$http){
-			$http.get("./api/friend").then(function(result){
-				$scope.friends = result.data;
-			});
+			$scope.getFriends = function(dir) {
+
+				jQuery("#error-msg").hide();
+				if( dir == 'next' ) {
+					page++;
+					if( page > totalpages ) {
+						page = totalpages;	
+						jQuery("#error-msg").text("Last page!!!");
+						jQuery("#error-msg").show();
+						return;
+					}
+				} else if( dir == 'prev' ) {
+					page--;
+					if( page < 1 ) {
+						page = 1;
+						jQuery("#error-msg").text("First page!!!");
+						jQuery("#error-msg").show();
+						return;
+					}
+				}
+				$scope.friends = [];
+				jQuery("#page").text(page);
+				$http.get("./api/friend?page=" + page).then(function(result){
+					$scope.friends = result.data;
+				});				
+			};
+
 		});
 
 		jQuery("#friendstable").on("click", ".btn-del", function(e){
